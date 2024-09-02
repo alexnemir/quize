@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+        }
+        .question {
+            margin-bottom: 20px;
+        }
+        .answer {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .result {
+            display: none;
+            margin-top: 20px;
+        }
+        .question-count {
+            margin-bottom: 10px;
+        }
+        .answer-container {
+            margin-bottom: 15px;
+        }
+        .incorrect {
+            color: red;
+        }
+        #topic-selection {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-container">
+        <h2>Select Quiz Topic</h2>
+        <div id="topic-selection">
+            <label for="topic">Choose a topic:</label>
+            <select id="topic">
+                <option value="all">All Topics</option>
+            </select>
+        </div>
+        <button id="start-quiz-btn">Start Quiz</button>
+    </div>
+
+    <div id="quiz-container" style="display:none;">
+        <div class="question-count" id="question-count"></div>
+        <div class="question" id="question"></div>
+        <form id="answers" class="answers"></form>
+        <button id="next-btn">Next</button>
+    </div>
+    <div class="result" id="result">
+        <h2>Quiz Result</h2>
+        <p id="score"></p>
+        <button id="restart-btn">Restart Quiz</button>
+        <div id="detailed-result"></div>
+    </div>
+
+    <script>
+        let allQuestions = []; // Все вопросы из JSON
+        let filteredQuestions = []; // Отфильтрованные вопросы по выбранной теме
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let userAnswers = [];
+
+        // Функция для загрузки вопросов из JSON
+        async function loadQuestions() {
+            try {
+                const response = await fetch('quiz_questions.json');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                console.log("Questions loaded:", data);
+
+                // Проверка, что data.questions - это массив
+                if (!Array.isArray(data.questions)) {
+                    throw new Error('Loaded data is not an array');
+                }
+
+                allQuestions = data.questions;
+
+                // Заполняем выбор тем
+                populateTopicSelection(allQuestions);
+
+            } catch (error) {
+                console.error("Failed to load JSON", error);
+                document.getElementById('start-container').textContent = 'Failed to load questions.';
+            }
+        }
+
+        // Заполнение списка тем для выбора
+        function populateTopicSelection(questions) {
+            const topicSelect = document.getElementById('topic');
+            const topics = [...new Set(questions.map(q => q.topic))];
+
+            topics.forEach(topic => {
+                const option = document.createElement('option');
+                option.value = topic;
+                option.textContent = topic;
+                topicSelect.appendChild(option);
+            });
+        }
+
+        // Начало квиза с выбранной темой
+        function startQuiz() {
+            const selectedTopic = document.getElementById('topic').value;
+
+            if (selectedTopic === "all") {
+                filteredQuestions = allQuestions;
+            } else {
+                filteredQuestions = allQuestions.filter(q => q.topic === selectedTopic);
+            }
+
+            filteredQuestions = shuffleArray(filteredQuestions).slice(0, Math.min(50, filteredQuestions.length));
+
+            currentQuestionIndex = 0;
+            score = 0;
+            userAnswers = [];
+            document.getElementById('start-container').style.display = 'none';
+            document.getElementById('quiz-container').style.display = 'block';
+            showQuestion();
+        }
+
+        // Функция для показа вопроса
+        function showQuestion() {
+            const questionElement = document.getElementById('question');
+            const answersElement = document.getElementById('answers');
+            const questionCountElement = document.getElementById('question-count');
+
+            const currentQuestion = filteredQuestions[currentQuestionIndex];
+            questionCountElement.textContent = `Question ${currentQuestionIndex + 1} of ${filteredQuestions.length}`;
+            questionElement.textContent = currentQuestion.question;
+
+            answersElement.innerHTML = '';
+            currentQuestion.options.forEach((option, index) => {
+                const answerContainer = document.createElement('div');
+                answerContainer.classList.add('answer-container');
+
+                const answerInput = document.createElement('input');
+                answerInput.type = 'radio';
+                answerInput.name = 'answer';
+                answerInput.value = option;
+                answerInput.id = `answer${index}`;
+
+                const answerLabel = document.createElement('label');
+                answerLabel.htmlFor = `answer${index}`;
+                answerLabel.textContent = option;
+
+                answerContainer.appendChild(answerInput);
+                answerContainer.appendChild(answerLabel);
+
+                answersElement.appendChild(answerContainer);
+            });
+        }
+
+        // Функция выбора ответа
+        function selectAnswer() {
+            const selectedAnswer = document.querySelector('input[name="answer"]:checked');
+            if (!selectedAnswer) {
+                alert("Please select an answer before proceeding.");
+                return;
+            }
+
+            const userAnswer = selectedAnswer.value;
+            const correctAnswer = filteredQuestions[currentQuestionIndex].correct_answer;
+            
+            userAnswers.push({
+                question: filteredQuestions[currentQuestionIndex].question,
+                selected: userAnswer,
+                correct: userAnswer === correctAnswer
+            });
+
+            if (userAnswer === correctAnswer) {
+                score++;
+            }
+
+            currentQuestionIndex++;
+            
+            // Проверка, чтобы избежать выхода за пределы массива
+            if (currentQuestionIndex < filteredQuestions.length) {
+                showQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        // Функция показа результата
+        function showResult() {
+            const resultElement = document.getElementById('result');
+            const scoreElement = document.getElementById('score');
+            const detailedResultElement = document.getElementById('detailed-result');
+            const quizContainer = document.getElementById('quiz-container');
+
+            quizContainer.style.display = 'none';
+            resultElement.style.display = 'block';
+
+            const percentage = (score / filteredQuestions.length) * 100;
+            scoreElement.textContent = `You got ${score} out of ${filteredQuestions.length} correct (${percentage.toFixed(2)}%).`;
+            if (percentage >= 80) {
+                scoreElement.textContent += ' Test passed!';
+            } else {
+                scoreElement.textContent += ' Test failed.';
+            }
+
+            detailedResultElement.innerHTML = '<h3>Detailed Results</h3>';
+            userAnswers.forEach((answer, index) => {
+                const resultItem = document.createElement('div');
+                
+                // Если ответ неверный, применяем класс incorrect
+                if (!answer.correct) {
+                    resultItem.classList.add('incorrect');
+                }
+                
+                resultItem.innerHTML = `<strong>Question ${index + 1}:</strong> ${answer.question}<br>
+                                        <strong>Your answer:</strong> ${answer.selected}<br>
+                                        <strong>Correct answer:</strong> ${filteredQuestions[index].correct_answer}<br>`;
+                detailedResultElement.appendChild(resultItem);
+            });
+        }
+
+        // Функция перезапуска квиза
+        function restartQuiz() {
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('quiz-container').style.display = 'none';
+            document.getElementById('start-container').style.display = 'block';
+        }
+
+        // Перемешивание массива
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        document.getElementById('start-quiz-btn').onclick = startQuiz;
+        document.getElementById('next-btn').onclick = selectAnswer;
+        document.getElementById('restart-btn').onclick = restartQuiz;
+
+        loadQuestions();
+    </script>
+</body>
+</html>
