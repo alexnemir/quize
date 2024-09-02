@@ -71,6 +71,12 @@
         #detailed-result {
             margin-top: 20px;
         }
+        #restart-btn {
+            display: none; /* Скрыть кнопку перезапуска на старте */
+        }
+        #result {
+            display: none; /* Скрыть блок с результатами на старте */
+        }
     </style>
 </head>
 <body>
@@ -91,7 +97,7 @@
         <form id="answers" class="answers"></form>
         <button id="next-btn">Next</button>
     </div>
-    <div class="result" id="result">
+    <div id="result">
         <h2>Quiz Result</h2>
         <p id="score"></p>
         <button id="restart-btn">Restart Quiz</button>
@@ -259,6 +265,9 @@
                                         <strong>Correct answer:</strong> ${filteredQuestions[index].correct_answer}<br>`;
                 detailedResultElement.appendChild(resultItem);
             });
+
+            // Показать кнопку перезапуска после завершения квиза
+            document.getElementById('restart-btn').style.display = 'block';
         }
 
         // Функция перезапуска квиза
@@ -266,6 +275,9 @@
             document.getElementById('result').style.display = 'none';
             document.getElementById('quiz-container').style.display = 'none';
             document.getElementById('start-container').style.display = 'block';
+
+            // Скрыть кнопку перезапуска после начала нового квиза
+            document.getElementById('restart-btn').style.display = 'none';
         }
 
         // Перемешивание массива
