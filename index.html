@@ -29,7 +29,7 @@
         #start-container {
             text-align: center;
         }
-        select, button {
+        select, button, input[type="radio"] {
             padding: 10px 20px;
             border-radius: 5px;
             border: 1px solid #ccc;
@@ -55,6 +55,9 @@
         .incorrect {
             color: red;
         }
+        .correct {
+            color: green;
+        }
         .question-count {
             margin-bottom: 10px;
             font-weight: bold;
@@ -77,17 +80,55 @@
         #result {
             display: none; /* Скрыть блок с результатами на старте */
         }
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-left: 10px;
+            cursor: pointer;
+            position: relative;
+        }
+        .hint:hover::after {
+            content: attr(data-hint);
+            position: absolute;
+            background: #333;
+            color: #fff;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 12px;
+            top: -5px;
+            left: 120%;
+            white-space: nowrap;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
     <div id="start-container">
-        <h2>Select Quiz Topic</h2>
+        <h2>Select Quiz Topic and Mode</h2>
+
+        <!-- Выбор темы -->
         <div id="topic-selection">
             <label for="topic">Choose a topic:</label>
             <select id="topic">
                 <option value="all">All Topics</option>
             </select>
         </div>
+
+        <!-- Выбор режима -->
+        <div id="mode-selection">
+            <label>
+                <input type="radio" name="mode" value="learning" checked>
+                Learning Mode
+                <span class="hint" data-hint="In Learning mode, you'll see the correct answer immediately after each question.">?</span>
+            </label>
+            <br>
+            <label>
+                <input type="radio" name="mode" value="exam">
+                Exam Mode
+                <span class="hint" data-hint="In Exam mode, you'll get your results at the end of the quiz.">?</span>
+            </label>
+        </div>
+
         <button id="start-quiz-btn">Start Quiz</button>
     </div>
 
@@ -110,6 +151,7 @@
         let currentQuestionIndex = 0;
         let score = 0;
         let userAnswers = [];
+        let mode = 'learning'; // Режим по умолчанию - Learning
 
         // Функция для загрузки вопросов из JSON
         async function loadQuestions() {
@@ -150,9 +192,10 @@
             });
         }
 
-        // Начало квиза с выбранной темой
+        // Начало квиза с выбранной темой и режимом
         function startQuiz() {
             const selectedTopic = document.getElementById('topic').value;
+            mode = document.querySelector('input[name="mode"]:checked').value; // Получаем выбранный режим
 
             if (selectedTopic === "all") {
                 filteredQuestions = allQuestions;
@@ -212,7 +255,16 @@
 
             const userAnswer = selectedAnswer.value;
             const correctAnswer = filteredQuestions[currentQuestionIndex].correct_answer;
-            
+
+            // Обработка режима заучивания (Learning Mode)
+            if (mode === 'learning') {
+                if (userAnswer === correctAnswer) {
+                    alert('Correct!');
+                } else {
+                    alert(`Incorrect! The correct answer is: ${correctAnswer}`);
+                }
+            }
+
             userAnswers.push({
                 question: filteredQuestions[currentQuestionIndex].question,
                 selected: userAnswer,
@@ -224,12 +276,18 @@
             }
 
             currentQuestionIndex++;
-            
-            // Проверка, чтобы избежать выхода за пределы массива
-            if (currentQuestionIndex < filteredQuestions.length) {
-                showQuestion();
-            } else {
-                showResult();
+
+            // В режиме "Exam" продолжаем задавать вопросы, пока не дойдем до конца
+            if (mode === 'exam') {
+                if (currentQuestionIndex < filteredQuestions.length) {
+                    showQuestion(); // Переход к следующему вопросу
+                } else {
+                    showResult(); // Показать результат только после всех вопросов
+                }
+            } else if (mode === 'learning') {
+                if (currentQuestionIndex < filteredQuestions.length) {
+                    showQuestion();
+                }
             }
         }
 
@@ -254,12 +312,12 @@
             detailedResultElement.innerHTML = '<h3>Detailed Results</h3>';
             userAnswers.forEach((answer, index) => {
                 const resultItem = document.createElement('div');
-                
+
                 // Если ответ неверный, применяем класс incorrect
                 if (!answer.correct) {
                     resultItem.classList.add('incorrect');
                 }
-                
+
                 resultItem.innerHTML = `<strong>Question ${index + 1}:</strong> ${answer.question}<br>
                                         <strong>Your answer:</strong> ${answer.selected}<br>
                                         <strong>Correct answer:</strong> ${filteredQuestions[index].correct_answer}<br>`;
