@@ -278,16 +278,10 @@
             currentQuestionIndex++;
 
             // В режиме "Exam" продолжаем задавать вопросы, пока не дойдем до конца
-            if (mode === 'exam') {
-                if (currentQuestionIndex < filteredQuestions.length) {
-                    showQuestion(); // Переход к следующему вопросу
-                } else {
-                    showResult(); // Показать результат только после всех вопросов
-                }
-            } else if (mode === 'learning') {
-                if (currentQuestionIndex < filteredQuestions.length) {
-                    showQuestion();
-                }
+            if (currentQuestionIndex < filteredQuestions.length) {
+                showQuestion(); // Переход к следующему вопросу
+            } else {
+                showResult(); // Показать результат после всех вопросов
             }
         }
 
