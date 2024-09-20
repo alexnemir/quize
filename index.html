@@ -100,6 +100,19 @@
             white-space: nowrap;
             z-index: 10;
         }
+        /* Добавляем стили для сообщения о прохождении */
+        .passed {
+            color: green;
+        }
+        .failed {
+            color: red;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 14px;
+            color: #555;
+        }
     </style>
 </head>
 <body>
@@ -144,6 +157,10 @@
         <button id="restart-btn">Restart Quiz</button>
         <div id="detailed-result"></div>
     </div>
+
+    <footer>
+        Aleksandr Nemirovskiy ©
+    </footer>
 
     <script>
         let allQuestions = []; // Все вопросы из JSON
@@ -277,11 +294,10 @@
 
             currentQuestionIndex++;
 
-            // В режиме "Exam" продолжаем задавать вопросы, пока не дойдем до конца
             if (currentQuestionIndex < filteredQuestions.length) {
-                showQuestion(); // Переход к следующему вопросу
+                showQuestion();
             } else {
-                showResult(); // Показать результат после всех вопросов
+                showResult();
             }
         }
 
@@ -297,9 +313,14 @@
 
             const percentage = (score / filteredQuestions.length) * 100;
             scoreElement.textContent = `You got ${score} out of ${filteredQuestions.length} correct (${percentage.toFixed(2)}%).`;
+
             if (percentage >= 80) {
+                scoreElement.classList.add('passed');
+                scoreElement.classList.remove('failed');
                 scoreElement.textContent += ' Test passed!';
             } else {
+                scoreElement.classList.add('failed');
+                scoreElement.classList.remove('passed');
                 scoreElement.textContent += ' Test failed.';
             }
 
@@ -307,7 +328,6 @@
             userAnswers.forEach((answer, index) => {
                 const resultItem = document.createElement('div');
 
-                // Если ответ неверный, применяем класс incorrect
                 if (!answer.correct) {
                     resultItem.classList.add('incorrect');
                 }
@@ -318,7 +338,6 @@
                 detailedResultElement.appendChild(resultItem);
             });
 
-            // Показать кнопку перезапуска после завершения квиза
             document.getElementById('restart-btn').style.display = 'block';
         }
 
@@ -327,8 +346,6 @@
             document.getElementById('result').style.display = 'none';
             document.getElementById('quiz-container').style.display = 'none';
             document.getElementById('start-container').style.display = 'block';
-
-            // Скрыть кнопку перезапуска после начала нового квиза
             document.getElementById('restart-btn').style.display = 'none';
         }
 
